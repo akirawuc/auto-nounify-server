@@ -1,16 +1,6 @@
 from google.cloud import vision
 from math import atan2, degrees
 from PIL import Image, ImageDraw
-import argparse
-
-# input the images' path using the argparse input images
-# get the args
-parser = argparse.ArgumentParser()
-parser.add_argument('image_path', metavar='N', type=str, nargs='+',
-                    help='an integer for the accumulator')
-
-args = parser.parse_args()
-
 
 def detect_face(image_path):
     client = vision.ImageAnnotatorClient()
