@@ -11,6 +11,7 @@ python = "3.10.12"
 opencv-python = "^4.7.0.72"
 google-cloud-vision = "^3.4.2"
 pillow = "^9.5.0"
+flask = "^2.3.2"
 
 
 [build-system]

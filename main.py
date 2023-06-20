@@ -1,6 +1,14 @@
 from google.cloud import vision
+import io
+from flask_cors import CORS
+from flask import Flask, request, send_file
+from werkzeug.utils import secure_filename
+import os
 from math import atan2, degrees
 from PIL import Image, ImageDraw
+
+app = Flask(__name__)
+CORS(app)
 
 def detect_face(image_path):
     client = vision.ImageAnnotatorClient()
@@ -81,9 +89,26 @@ def overlay_glasses(image_path, faces):
     return img
 
 
+app.config['UPLOAD_FOLDER'] = './uploads/'
+
+@app.route('/api/upload', methods=['POST'])
+def upload():
+    if 'file' not in request.files:
+        return 'No file part', 400
+    file = request.files['file']
+    if file.filename == '':
+        return 'No selected file', 400
+    if file:
+        filename = file.filename
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        faces = detect_face('./uploads/' + filename)
+        img = overlay_glasses('./uploads/' + filename, faces)
+        img.show()
+        img.save('./uploads/face_with_glasses_' + filename)
+        byte_arr = io.BytesIO()
+        img.save(byte_arr, format='JPEG')
+        byte_arr =  byte_arr.getvalue()
+        return send_file(io.BytesIO(byte_arr), mimetype='image/jpeg')
+
 if __name__ == '__main__':
-    faces = detect_face('fren3.jpg')
-    img = overlay_glasses('fren3.jpg', faces)
-    # test_glasses()
-    img.show()
-    img.save('face_with_glasses_3.jpg')
+    app.run(port=5000)
