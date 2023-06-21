@@ -106,9 +106,20 @@ def upload():
         img.show()
         img.save('./uploads/face_with_glasses_' + filename)
         byte_arr = io.BytesIO()
-        img.save(byte_arr, format='JPEG')
-        byte_arr =  byte_arr.getvalue()
-        return send_file(io.BytesIO(byte_arr), mimetype='image/jpeg')
+        img.save(byte_arr, format=img.format)
+        byte_arr.seek(0)
+        if img.format == 'PNG':
+            mimetype = 'image/png'
+        elif img.format == 'JPEG':
+            mimetype = 'image/jpeg'
+        else:
+            mimetype = 'image/' + img.format.lower()
+
+        return send_file(
+                byte_arr,
+                mimetype=mimetype,
+                as_attachment=True,
+                attachment_filename=f'output.{img.format.lower()}')
 
 if __name__ == '__main__':
     app.run(port=5000)
