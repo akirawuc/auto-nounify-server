@@ -12,6 +12,8 @@ opencv-python = "^4.7.0.72"
 google-cloud-vision = "^3.4.2"
 pillow = "^9.5.0"
 flask = "^2.3.2"
+flask-cors = "^4.0.0"
+functions-framework = "^3.4.0"
 
 
 [build-system]

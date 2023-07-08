@@ -1,16 +1,16 @@
 from google.cloud import vision
+import functions_framework
 import io
 from flask_cors import CORS
-from flask import Flask, request, send_file
+from flask import Flask, request, send_from_directory, make_response
 from werkzeug.utils import secure_filename
 import os
 from math import atan2, degrees
 from PIL import Image, ImageDraw
 
-app = Flask(__name__)
-CORS(app)
 
 def detect_face(image_path):
+    print(image_path)
     client = vision.ImageAnnotatorClient()
 
     with open(image_path, 'rb') as image_file:
@@ -22,6 +22,7 @@ def detect_face(image_path):
     faces = response.face_annotations
 
     return faces
+    # return '123'
 
 def calculate_angle(left_eye, right_eye):
     dx = right_eye.position.x - left_eye.position.x
@@ -32,6 +33,7 @@ def calculate_angle(left_eye, right_eye):
 def overlay_glasses(image_path, faces):
     # Load image
     img = Image.open(image_path)
+    print(image_path)
     print(img.size)
 
     # Load glasses, which is in svg
@@ -45,8 +47,8 @@ def overlay_glasses(image_path, faces):
 
 
         scaling_factor = 2.7  # Increase this as needed
-        width = int((right_eye.position.x - left_eye.position.x) * scaling_factor)
-        height = int(width * glasses.size[1] / glasses.size[0])  # Maintain the aspect ratio
+        width = abs(int((right_eye.position.x - left_eye.position.x) * scaling_factor))
+        height = abs(int(width * glasses.size[1] / glasses.size[0]))  # Maintain the aspect ratio
         size = (width, height)
 
         midpoint = ((left_eye.position.x + right_eye.position.x) / 2,
@@ -84,27 +86,43 @@ def overlay_glasses(image_path, faces):
         img.paste(rotated_glasses, pos, mask=mask)
         # draw = ImageDraw.Draw(img)
         # draw.line([(left_eye.position.x, left_eye.position.y), (right_eye.position.x, right_eye.position.y)], fill="blue", width=3)
-        # img.show()
-
     return img
 
 
-app.config['UPLOAD_FOLDER'] = './uploads/'
+def get_file_path(filename):
+    # Note: tempfile.gettempdir() points to an in-memory file system
+    # on GCF. Thus, any files in it must fit in the instance's memory.
+    file_name = secure_filename(filename)
+    return os.path.join(tempfile.gettempdir(), file_name)
 
-@app.route('/api/upload', methods=['POST'])
-def upload():
-    if 'file' not in request.files:
-        return 'No file part', 400
-    file = request.files['file']
-    if file.filename == '':
-        return 'No selected file', 400
-    if file:
+@functions_framework.http
+def add_noggles(request):
+    if request.method == 'OPTIONS':
+           # Allows GET requests from any origin with the Content-Type
+           # header and caches preflight response for an 3600s
+           headers = {
+               'Access-Control-Allow-Origin': '*',
+               'Access-Control-Allow-Methods': 'GET',
+               'Access-Control-Allow-Headers': 'Content-Type',
+               'Access-Control-Max-Age': '3600'
+           }
+           return ('', 204, headers)
+
+    fields = {}
+    data = request.form.to_dict()
+    for field in data:
+        fields[field] = data[field]
+
+    files = request.files.to_dict()
+    for filename, file in files.items():
+        # Note: GCF may not keep files saved locally between invocations.
+        # If you want to preserve the uploaded files, you should save them
+        # to another location (such as a Cloud Storage bucket).
         filename = file.filename
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        faces = detect_face('./uploads/' + filename)
-        img = overlay_glasses('./uploads/' + filename, faces)
-        img.show()
-        img.save('./uploads/face_with_glasses_' + filename)
+        file.save(os.path.join('/tmp/', filename))
+        faces = detect_face('/tmp/' + filename)
+        img = overlay_glasses('/tmp/' + filename, faces)
+        img.save('/tmp/face_with_glasses_' + filename)
         byte_arr = io.BytesIO()
         img.save(byte_arr, format=img.format)
         byte_arr.seek(0)
@@ -114,12 +132,8 @@ def upload():
             mimetype = 'image/jpeg'
         else:
             mimetype = 'image/' + img.format.lower()
-
-        return send_file(
-                byte_arr,
-                mimetype=mimetype,
-                as_attachment=True,
-                attachment_filename=f'output.{img.format.lower()}')
-
-if __name__ == '__main__':
-    app.run(port=5000)
+        print('returning file')
+        response = make_response(send_from_directory('/tmp/', 'face_with_glasses_' + filename, as_attachment=True, mimetype=mimetype))
+        response.headers.set('Access-Control-Allow-Origin', '*')
+        response.headers.set('Access-Control-Allow-Methods', 'GET, POST')
+        return response
