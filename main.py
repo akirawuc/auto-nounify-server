@@ -120,8 +120,10 @@ def add_noggles(request):
 
 
     if not valid_key or valid_key.get('count') <= 0:
-        print('no valid key')
-        abort(403)  # 403 Forbidden response
+        response = make_response({'error': 'You did not have enough quota to nounify'}, 403)
+        response.headers.set('Access-Control-Allow-Origin', '*')
+        response.headers.set('Access-Control-Allow-Methods', 'GET, POST')
+        return response
 
     # Decrement the request_count in Firestore
     return_value = valid_key.reference.update({'count': firestore.Increment(-1)})
