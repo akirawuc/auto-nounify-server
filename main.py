@@ -46,6 +46,7 @@ def overlay_glasses(image_path, faces):
         # Calculate position and size of glasses
         left_eye = face.landmarks[0]
         right_eye = face.landmarks[1]
+        nose_tip = face.landmarks[7]
         print(left_eye)
 
 
@@ -62,7 +63,7 @@ def overlay_glasses(image_path, faces):
         shift = int(temple_factor * width)
 
         # Correct the position to align the glasses properly
-        pos = (int(midpoint[0] - size[0]/2 - shift), int(midpoint[1] - 1.4*(size[1]/2)))
+        pos = (int(midpoint[0] - size[0]/2 - shift), int(nose_tip.position.y - size[1]))
 
         print(f'adding the glasses at {pos} with size {size}')
         # Calculate the angle of rotation
@@ -120,8 +121,10 @@ def add_noggles(request):
 
 
     if not valid_key or valid_key.get('count') <= 0:
-        print('no valid key')
-        abort(403)  # 403 Forbidden response
+        response = make_response({'error': 'You did not have enough quota to nounify'}, 403)
+        response.headers.set('Access-Control-Allow-Origin', '*')
+        response.headers.set('Access-Control-Allow-Methods', 'GET, POST')
+        return response
 
     # Decrement the request_count in Firestore
     return_value = valid_key.reference.update({'count': firestore.Increment(-1)})
