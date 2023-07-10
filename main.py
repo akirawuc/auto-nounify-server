@@ -1,4 +1,7 @@
 from google.cloud import vision
+from google.cloud.firestore_v1.base_query import FieldFilter
+from google.cloud import firestore
+from flask import abort
 import functions_framework
 import io
 from flask_cors import CORS
@@ -89,24 +92,40 @@ def overlay_glasses(image_path, faces):
     return img
 
 
-def get_file_path(filename):
-    # Note: tempfile.gettempdir() points to an in-memory file system
-    # on GCF. Thus, any files in it must fit in the instance's memory.
-    file_name = secure_filename(filename)
-    return os.path.join(tempfile.gettempdir(), file_name)
-
 @functions_framework.http
 def add_noggles(request):
+    db = firestore.Client()
     if request.method == 'OPTIONS':
-           # Allows GET requests from any origin with the Content-Type
-           # header and caches preflight response for an 3600s
-           headers = {
-               'Access-Control-Allow-Origin': '*',
-               'Access-Control-Allow-Methods': 'GET',
-               'Access-Control-Allow-Headers': 'Content-Type',
-               'Access-Control-Max-Age': '3600'
-           }
-           return ('', 204, headers)
+        # Allows GET requests from any origin with the Content-Type
+        # header and caches preflight response for an 3600s
+        headers = {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET',
+            'Access-Control-Allow-Headers': 'Content-Type,  x-wallet-address',
+            'Access-Control-Max-Age': '3600'
+        }
+        return ('', 204, headers)
+
+    api_key = request.headers.get('x-wallet-address')
+    if api_key is None:
+        print(' no api key')
+        abort(403)
+    api_key = api_key.lower()
+    print(api_key)
+    docs = db.collection('nounifyquota').where(filter=FieldFilter('address', '==', api_key)).stream()
+    valid_key = None
+    for doc in docs:
+        print(f'doc is {doc.to_dict()}')
+        valid_key = doc
+
+
+    if not valid_key or valid_key.get('count') <= 0:
+        print('no valid key')
+        abort(403)  # 403 Forbidden response
+
+    # Decrement the request_count in Firestore
+    return_value = valid_key.reference.update({'count': firestore.Increment(-1)})
+
 
     fields = {}
     data = request.form.to_dict()
