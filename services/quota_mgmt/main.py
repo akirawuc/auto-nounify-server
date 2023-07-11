@@ -55,6 +55,15 @@ def set_success(transaction_hash):
         'processed': True
     })
 
+def transaction_processed(transaction_hash):
+    db = firestore.Client()
+    doc_ref = db.collection('boughtnounifyquota').document(transaction_hash)
+    doc = doc_ref.get()
+    if doc.exists:
+        return doc.to_dict()['processed']
+    else:
+        return False
+
 def decode_transfer_event(transaction_hash):
     # decode the transaction hash, and verify how much the address transfer
     # if the address transfer 1 usdt, and they got 1 quota.
@@ -130,21 +139,10 @@ def decode_add_quota(request):
             # if the sender not in the database, add it to the database
             add_quota(sender, amount)
         # if the transaction is already  in the state 'success',  decrease 1 quota
-        db = firestore.Client()
-        doc_ref = db.collection('boughtnounifyquota').document(transaction_hash)
-        doc = doc_ref.get()
-        if doc.exists:
-            # if the transaction is already  in the state 'success',  decrease 1 quota
-            if doc.to_dict()['processed']:
-                print('already processed')
-                increase_quota(sender, -1)
-                return 'success'
+        if transaction_processed(transaction_hash):
+            increase_quota(sender, -1)
+            return 'success'
+        # wait for 10 seconds, if the transaction is not in the state 'success', decrease 1 quota
         # set the transaction hash to success
         set_success(transaction_hash)
         return 'success'
-
-
-if __name__ == '__main__':
-    # test add quota function
-    # add_quota('0xca84541d8b8bf50fd8b042acfd28b1e390703e20', 99999)
-    decode_transfer_event('0xec2f80839fc7ef3d9d0d82b9a6eec050eaf64068074b4b6ecd053dc3ada527f3')
