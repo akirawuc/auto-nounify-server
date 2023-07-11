@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "quota-mgmt"
+version = "0.1.0"
+description = ""
+authors = ["akirawuc <stu970029@gmail.com>"]
+readme = "README.md"
+packages = [{include = "quota_mgmt"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
