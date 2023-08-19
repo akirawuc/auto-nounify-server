@@ -107,28 +107,6 @@ def add_noggles(request):
         }
         return ('', 204, headers)
 
-    api_key = request.headers.get('x-wallet-address')
-    if api_key is None:
-        print(' no api key')
-        abort(403)
-    api_key = api_key.lower()
-    print(api_key)
-    docs = db.collection('nounifyquota').where(filter=FieldFilter('address', '==', api_key)).stream()
-    valid_key = None
-    for doc in docs:
-        print(f'doc is {doc.to_dict()}')
-        valid_key = doc
-
-
-    if not valid_key or valid_key.get('count') <= 0:
-        response = make_response({'error': 'You did not have enough quota to nounify'}, 403)
-        response.headers.set('Access-Control-Allow-Origin', '*')
-        response.headers.set('Access-Control-Allow-Methods', 'GET, POST')
-        return response
-
-    # Decrement the request_count in Firestore
-    return_value = valid_key.reference.update({'count': firestore.Increment(-1)})
-
 
     fields = {}
     data = request.form.to_dict()
