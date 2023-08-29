@@ -25,7 +25,6 @@ def detect_face(image_path):
     faces = response.face_annotations
 
     return faces
-    # return '123'
 
 def calculate_angle(left_eye, right_eye):
     dx = right_eye.position.x - left_eye.position.x
@@ -50,7 +49,7 @@ def overlay_glasses(image_path, faces):
         print(left_eye)
 
 
-        scaling_factor = 2.7  # Increase this as needed
+        scaling_factor = 2.7  # Increase this as needed to make the noggle bigger or smaller
         width = abs(int((right_eye.position.x - left_eye.position.x) * scaling_factor))
         height = abs(int(width * glasses.size[1] / glasses.size[0]))  # Maintain the aspect ratio
         size = (width, height)
@@ -65,7 +64,6 @@ def overlay_glasses(image_path, faces):
         # Correct the position to align the glasses properly
         pos = (int(midpoint[0] - size[0]/2 - shift), int(nose_tip.position.y - size[1]))
 
-        print(f'adding the glasses at {pos} with size {size}')
         # Calculate the angle of rotation
         angle = calculate_angle(left_eye, right_eye)
 
@@ -88,8 +86,6 @@ def overlay_glasses(image_path, faces):
 
         # Overlay glasses onto image
         img.paste(rotated_glasses, pos, mask=mask)
-        # draw = ImageDraw.Draw(img)
-        # draw.line([(left_eye.position.x, left_eye.position.y), (right_eye.position.x, right_eye.position.y)], fill="blue", width=3)
     return img
 
 
@@ -115,9 +111,6 @@ def add_noggles(request):
 
     files = request.files.to_dict()
     for filename, file in files.items():
-        # Note: GCF may not keep files saved locally between invocations.
-        # If you want to preserve the uploaded files, you should save them
-        # to another location (such as a Cloud Storage bucket).
         filename = file.filename
         file.save(os.path.join('/tmp/', filename))
         faces = detect_face('/tmp/' + filename)
