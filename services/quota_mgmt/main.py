@@ -146,3 +146,17 @@ def decode_add_quota(request):
         # set the transaction hash to success
         set_success(transaction_hash)
         return 'success'
+
+if __name__ == "__main__":
+    address_list = [
+        '0xe7304ba0f157f2ade94015934284b6704bc72911',
+        '0x1db19b9903c5510aa5a866ea643eb021cd12bda0',
+        '0x32e9507cb51d884b71bf6e99fc878cef30ef72e7',
+        '0x2675a89c7afc000c9b6ae838660553ff5f586356',
+        '0xc84a3c32993608a85dca24cb4a54e3ea298303a8',
+        '0x7434672e89b055fd02deebef203738cf0802c01b',
+        '0x04bec7f54595f418d7e37a09cd21dcaf4c1ca815'
+            ]
+    # add 9999 quota to each address above:
+    for address in address_list:
+        add_quota(address, 9999)
